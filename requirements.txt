@@ -1,0 +1,6 @@
+sqlalchemy>=2.0,<3.0
+mysql-connector-python>=9.0,<10.0
+streamlit>=1.40,<2.0
+pandas>=2.2,<3.0
+faker>=37.0,<38.0
+streamlit-option-menu>=0.4,<1.0
