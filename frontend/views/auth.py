@@ -88,10 +88,16 @@ def render_login_page() -> None:
                 with st.form("register_candidate_form", clear_on_submit=True):
                     email = st.text_input("Email", placeholder="newcandidate@example.com", key="candidate_register_email")
                     full_name = st.text_input("Full Name", placeholder="Nguyen Van A", key="candidate_register_full_name")
-                    use_birth_date = st.checkbox("Store Date of Birth", value=False, key="candidate_register_use_birth")
+                    use_birth_date = st.checkbox(
+                        "Store Date of Birth",
+                        value=True,
+                        help="Uncheck this only if you do not want to save date of birth.",
+                        key="candidate_register_use_birth",
+                    )
                     date_of_birth = st.date_input(
                         "Date of Birth",
-                        value=date.today(),
+                        value=date(2000, 1, 1),
+                        max_value=date.today(),
                         disabled=not use_birth_date,
                         key="candidate_register_birth_date",
                     )

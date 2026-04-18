@@ -1340,22 +1340,24 @@ def show_reference_activity_table(
             status = str(row.get("status") or row.get("Status") or "Unknown")
             branch = str(row.get("branch") or row.get("Branch") or "-")
             time_label = str(row.get("time") or row.get("Time") or "-")
+            details = row.get("details") or []
             avatar = escape(title[:1].upper() if title else "?")
+            detail_html = "".join(
+                f"<div class='activity-detail'>{escape(str(detail))}</div>"
+                for detail in details
+                if str(detail).strip()
+            )
 
             row_cols = st.columns([4.1, 1.5, 2.1, 1.0], gap="small")
             with row_cols[0]:
-                st.markdown(
-                    f"""
-                    <div class="activity-commit">
-                        <div class="activity-avatar">{avatar}</div>
-                        <div>
-                            <div class="activity-title">{escape(title)}</div>
-                            <div class="activity-subtitle">{escape(subtitle)}</div>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                avatar_col, text_col = st.columns([0.22, 3.78], gap="small")
+                with avatar_col:
+                    st.markdown(f"<div class='activity-avatar'>{avatar}</div>", unsafe_allow_html=True)
+                with text_col:
+                    st.markdown(f"<div class='activity-title'>{escape(title)}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='activity-subtitle'>{escape(subtitle)}</div>", unsafe_allow_html=True)
+                    if detail_html:
+                        st.markdown(detail_html, unsafe_allow_html=True)
             with row_cols[1]:
                 st.markdown(status_badge(status), unsafe_allow_html=True)
             with row_cols[2]:

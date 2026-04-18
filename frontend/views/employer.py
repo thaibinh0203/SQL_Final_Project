@@ -20,7 +20,6 @@ from frontend.components import (
     panel_header,
     records_frame,
     resource_card,
-    show_activity_table,
     show_reference_activity_table,
     show_reference_data_table,
     show_records,
@@ -1039,7 +1038,7 @@ def render_interviews() -> None:
     with new_tab:
         with st.container(border=True):
             panel_header("New Applicants", "Applicants without an interview scheduled yet.", eyebrow="Queue")
-            show_activity_table(
+            show_reference_activity_table(
                 _pending_interview_activity_rows(pending_candidates),
                 "There are no new applicants ready for interview scheduling right now.",
                 headers=["Applicant", "Status", "Company", "Applied"],
@@ -1121,7 +1120,7 @@ def render_interviews() -> None:
     with history_tab:
         with st.container(border=True):
             panel_header("Interview History", "All scheduled and completed interview records for this employer.", eyebrow="History")
-            show_activity_table(
+            show_reference_activity_table(
                 _interview_activity_rows(interviews),
                 "There are no interviews recorded yet.",
                 headers=["Candidate", "Result", "Location", "Interview"],
