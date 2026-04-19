@@ -7,9 +7,11 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote_plus
 import os
+import tomllib
 
 
 ENV_FILE = Path(".env")
+STREAMLIT_SECRETS_FILE = Path(".streamlit/secrets.toml")
 
 
 def _load_env_file(file_path: Path) -> dict[str, str]:
@@ -30,11 +32,35 @@ def _load_env_file(file_path: Path) -> dict[str, str]:
     return values
 
 
+def _load_toml_file(file_path: Path) -> dict[str, str]:
+    """Load flat string-like keys from a TOML file when present."""
+
+    if not file_path.exists():
+        return {}
+
+    data = tomllib.loads(file_path.read_text(encoding="utf-8"))
+    return {str(key): str(value) for key, value in data.items()}
+
+
 def _read_setting(name: str, default: str) -> str:
     """Read settings from environment variables with local .env fallback."""
 
     env_file_values = _load_env_file(ENV_FILE)
-    return os.getenv(name, env_file_values.get(name, default))
+    secrets_file_values = _load_toml_file(STREAMLIT_SECRETS_FILE)
+    if os.getenv(name) is not None:
+        return str(os.getenv(name))
+    if name in env_file_values:
+        return env_file_values[name]
+    if name in secrets_file_values:
+        return secrets_file_values[name]
+    try:
+        import streamlit as st
+
+        if name in st.secrets:
+            return str(st.secrets[name])
+    except Exception:
+        pass
+    return default
 
 
 @dataclass(frozen=True)

@@ -6,6 +6,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
 from html import escape
+import re
 from typing import Any, Sequence
 
 import pandas as pd
@@ -1209,10 +1210,18 @@ def _render_table_cell(column: str, value: Any) -> str:
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return "<span class='cell-muted'>-</span>"
 
-    text = str(value)
+    text = _strip_div_artifacts(value)
     if any(token in column.lower() for token in ("status", "result")):
         return status_badge(text)
     return escape(text)
+
+
+def _strip_div_artifacts(value: Any) -> str:
+    """Remove stray literal div tags that occasionally leak into rendered text."""
+
+    text = str(value or "")
+    text = re.sub(r"</?div[^>]*>", "", text, flags=re.IGNORECASE)
+    return text.strip()
 
 
 def show_records(records: list[dict[str, Any]], empty_message: str, *, height: int = 360) -> None:
@@ -1260,17 +1269,17 @@ def show_activity_table(
     normalized_headers = (header_labels + ["Commit", "Status", "Branch", "Time"])[:4]
     rows: list[str] = []
     for row in records:
-        title = str(row.get("title") or row.get("Title") or "-")
-        subtitle = str(row.get("subtitle") or row.get("Subtitle") or "")
-        status = str(row.get("status") or row.get("Status") or "Unknown")
-        branch = str(row.get("branch") or row.get("Branch") or "-")
-        time_label = str(row.get("time") or row.get("Time") or "-")
+        title = _strip_div_artifacts(row.get("title") or row.get("Title") or "-")
+        subtitle = _strip_div_artifacts(row.get("subtitle") or row.get("Subtitle") or "")
+        status = _strip_div_artifacts(row.get("status") or row.get("Status") or "Unknown")
+        branch = _strip_div_artifacts(row.get("branch") or row.get("Branch") or "-")
+        time_label = _strip_div_artifacts(row.get("time") or row.get("Time") or "-")
         details = row.get("details") or []
         avatar = escape(title[:1].upper() if title else "?")
         detail_html = "".join(
-            f"<div class='activity-detail'>{escape(str(detail))}</div>"
+            f"<div class='activity-detail'>{escape(_strip_div_artifacts(detail))}</div>"
             for detail in details
-            if str(detail).strip()
+            if _strip_div_artifacts(detail)
         )
         row_html = f"""
         <div class="activity-grid-row">
@@ -1335,17 +1344,17 @@ def show_reference_activity_table(
         st.divider()
 
         for index, row in enumerate(records):
-            title = str(row.get("title") or row.get("Title") or "-")
-            subtitle = str(row.get("subtitle") or row.get("Subtitle") or "")
-            status = str(row.get("status") or row.get("Status") or "Unknown")
-            branch = str(row.get("branch") or row.get("Branch") or "-")
-            time_label = str(row.get("time") or row.get("Time") or "-")
+            title = _strip_div_artifacts(row.get("title") or row.get("Title") or "-")
+            subtitle = _strip_div_artifacts(row.get("subtitle") or row.get("Subtitle") or "")
+            status = _strip_div_artifacts(row.get("status") or row.get("Status") or "Unknown")
+            branch = _strip_div_artifacts(row.get("branch") or row.get("Branch") or "-")
+            time_label = _strip_div_artifacts(row.get("time") or row.get("Time") or "-")
             details = row.get("details") or []
             avatar = escape(title[:1].upper() if title else "?")
             detail_html = "".join(
-                f"<div class='activity-detail'>{escape(str(detail))}</div>"
+                f"<div class='activity-detail'>{escape(_strip_div_artifacts(detail))}</div>"
                 for detail in details
-                if str(detail).strip()
+                if _strip_div_artifacts(detail)
             )
 
             row_cols = st.columns([4.1, 1.5, 2.1, 1.0], gap="small")
@@ -1419,7 +1428,7 @@ def show_reference_data_table(
                     if value is None or (isinstance(value, float) and pd.isna(value)):
                         text = "-"
                     else:
-                        text = str(value)
+                        text = _strip_div_artifacts(value)
                     alignment = "right" if align_right else "left"
                     st.markdown(
                         f"<div style='font-size:0.9rem; color:var(--text); text-align:{alignment}; padding-top:0.1rem;'>{escape(text)}</div>",
