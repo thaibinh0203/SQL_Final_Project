@@ -534,12 +534,15 @@ def render_dashboard() -> None:
                     "title": row.get("CandidateName"),
                     "subtitle": f"{row.get('ApplicationID')} | {row.get('PositionTitle')}",
                     "status": row.get("ApplicationStatus"),
-                    "branch": row.get("CompanyName"),
                     "time": str(row.get("ApplicationDate"))[:16],
                 }
                 for row in recent_applications
             ]
-            show_reference_activity_table(application_rows, "No recent applications are available.")
+            show_reference_activity_table(
+                application_rows,
+                "No recent applications are available.",
+                headers=["Applicant", "Status", "Applied"],
+            )
 
     with main_right:
         with st.container(border=True):

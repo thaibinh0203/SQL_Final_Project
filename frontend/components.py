@@ -1266,7 +1266,12 @@ def show_activity_table(
         return
 
     header_labels = list(headers or ["Commit", "Status", "Branch", "Time"])
-    normalized_headers = (header_labels + ["Commit", "Status", "Branch", "Time"])[:4]
+    include_reference = len(header_labels) != 3
+    normalized_headers = (
+        (header_labels + ["Commit", "Status", "Branch", "Time"])[:4]
+        if include_reference
+        else (header_labels + ["Commit", "Status", "Time"])[:3]
+    )
     rows: list[str] = []
     for row in records:
         title = _strip_div_artifacts(row.get("title") or row.get("Title") or "-")
@@ -1281,35 +1286,66 @@ def show_activity_table(
             for detail in details
             if _strip_div_artifacts(detail)
         )
-        row_html = f"""
-        <div class="activity-grid-row">
-            <div class="activity-grid-cell commit">
-                <div class="activity-commit">
-                    <div class="activity-avatar">{avatar}</div>
-                    <div>
-                        <div class="activity-title">{escape(title)}</div>
-                        <div class="activity-subtitle">{escape(subtitle)}</div>
-                        {detail_html}
+        if include_reference:
+            row_html = f"""
+            <div class="activity-grid-row">
+                <div class="activity-grid-cell commit">
+                    <div class="activity-commit">
+                        <div class="activity-avatar">{avatar}</div>
+                        <div>
+                            <div class="activity-title">{escape(title)}</div>
+                            <div class="activity-subtitle">{escape(subtitle)}</div>
+                            {detail_html}
+                        </div>
                     </div>
                 </div>
+                <div class="activity-grid-cell status">{status_badge(status)}</div>
+                <div class="activity-grid-cell branch"><span class="branch-chip">&#9679; {escape(branch)}</span></div>
+                <div class="activity-grid-cell time"><span class="time-cell">{escape(time_label)}</span></div>
             </div>
-            <div class="activity-grid-cell status">{status_badge(status)}</div>
-            <div class="activity-grid-cell branch"><span class="branch-chip">&#9679; {escape(branch)}</span></div>
-            <div class="activity-grid-cell time"><span class="time-cell">{escape(time_label)}</span></div>
-        </div>
-        """
+            """
+        else:
+            row_html = f"""
+            <div class="activity-grid-row" style="grid-template-columns: minmax(320px, 4.2fr) minmax(120px, 1.3fr) minmax(110px, 0.9fr);">
+                <div class="activity-grid-cell commit">
+                    <div class="activity-commit">
+                        <div class="activity-avatar">{avatar}</div>
+                        <div>
+                            <div class="activity-title">{escape(title)}</div>
+                            <div class="activity-subtitle">{escape(subtitle)}</div>
+                            {detail_html}
+                        </div>
+                    </div>
+                </div>
+                <div class="activity-grid-cell status">{status_badge(status)}</div>
+                <div class="activity-grid-cell time"><span class="time-cell">{escape(time_label)}</span></div>
+            </div>
+            """
         rows.append(row_html)
+
+    if include_reference:
+        header_html = f"""
+            <div class="activity-grid-header">
+                <div class="activity-grid-head">{escape(str(normalized_headers[0]))}</div>
+                <div class="activity-grid-head">{escape(str(normalized_headers[1]))}</div>
+                <div class="activity-grid-head">{escape(str(normalized_headers[2]))}</div>
+                <div class="activity-grid-head time">{escape(str(normalized_headers[3]))}</div>
+            </div>
+        """
+    else:
+        header_html = f"""
+            <div class="activity-grid-header" style="grid-template-columns: minmax(320px, 4.2fr) minmax(120px, 1.3fr) minmax(110px, 0.9fr);">
+                <div class="activity-grid-head">{escape(str(normalized_headers[0]))}</div>
+                <div class="activity-grid-head">{escape(str(normalized_headers[1]))}</div>
+                <div class="activity-grid-head time">{escape(str(normalized_headers[2]))}</div>
+            </div>
+        """
 
     st.markdown(
         f"""
         <div class="activity-table-wrap">
             <div class="activity-grid">
-                <div class="activity-grid-header">
-                    <div class="activity-grid-head">{escape(str(normalized_headers[0]))}</div>
-                    <div class="activity-grid-head">{escape(str(normalized_headers[1]))}</div>
-                    <div class="activity-grid-head">{escape(str(normalized_headers[2]))}</div>
-                    <div class="activity-grid-head time">{escape(str(normalized_headers[3]))}</div>
-                </div>
+                {header_html}
                 {''.join(rows)}
             </div>
         </div>
@@ -1331,10 +1367,17 @@ def show_reference_activity_table(
         return
 
     header_labels = list(headers or ["Commit", "Status", "Branch", "Time"])
-    normalized_headers = (header_labels + ["Commit", "Status", "Branch", "Time"])[:4]
+    include_reference = len(header_labels) != 3
+    normalized_headers = (
+        (header_labels + ["Commit", "Status", "Branch", "Time"])[:4]
+        if include_reference
+        else (header_labels + ["Commit", "Status", "Time"])[:3]
+    )
+    column_widths = [4.1, 1.5, 2.1, 1.0] if include_reference else [5.2, 1.6, 1.2]
+    header_alignments = [False, False, False, True] if include_reference else [False, False, True]
     with st.container(border=True):
-        header_cols = st.columns([4.1, 1.5, 2.1, 1.0], gap="small")
-        for column, label, align_right in zip(header_cols, normalized_headers, [False, False, False, True]):
+        header_cols = st.columns(column_widths, gap="small")
+        for column, label, align_right in zip(header_cols, normalized_headers, header_alignments):
             with column:
                 alignment = "right" if align_right else "left"
                 st.markdown(
@@ -1357,7 +1400,7 @@ def show_reference_activity_table(
                 if _strip_div_artifacts(detail)
             )
 
-            row_cols = st.columns([4.1, 1.5, 2.1, 1.0], gap="small")
+            row_cols = st.columns(column_widths, gap="small")
             with row_cols[0]:
                 avatar_col, text_col = st.columns([0.22, 3.78], gap="small")
                 with avatar_col:
@@ -1369,13 +1412,20 @@ def show_reference_activity_table(
                         st.markdown(detail_html, unsafe_allow_html=True)
             with row_cols[1]:
                 st.markdown(status_badge(status), unsafe_allow_html=True)
-            with row_cols[2]:
-                st.markdown(f"<span class='branch-chip'>&#9679; {escape(branch)}</span>", unsafe_allow_html=True)
-            with row_cols[3]:
-                st.markdown(
-                    f"<div class='time-cell' style='padding-top:0.2rem;'>{escape(time_label)}</div>",
-                    unsafe_allow_html=True,
-                )
+            if include_reference:
+                with row_cols[2]:
+                    st.markdown(f"<span class='branch-chip'>&#9679; {escape(branch)}</span>", unsafe_allow_html=True)
+                with row_cols[3]:
+                    st.markdown(
+                        f"<div class='time-cell' style='padding-top:0.2rem;'>{escape(time_label)}</div>",
+                        unsafe_allow_html=True,
+                    )
+            else:
+                with row_cols[2]:
+                    st.markdown(
+                        f"<div class='time-cell' style='padding-top:0.2rem;'>{escape(time_label)}</div>",
+                        unsafe_allow_html=True,
+                    )
 
             if index < len(records) - 1:
                 st.divider()
